@@ -1,4 +1,6 @@
+mod vm;
 mod lexer;
+mod parser;
 
 use std::env;
 use std::fs::File;
@@ -18,7 +20,12 @@ fn main() {
 
         let mut lexer = lexer::Lexer::new();
 
-        lexer.run(source)
+        let tokens = lexer.run(source);
+
+        let mut parser = parser::Parser::new();
+
+        parser.run(tokens);
+
     } else {
         println!("You need to run kram with a file");
         println!("$ cargo run test.kr");

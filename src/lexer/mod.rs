@@ -1,7 +1,10 @@
 use std::collections::HashMap;
+use std::clone::Clone;
 
 #[derive(Debug)]
-enum Type {
+#[derive(Clone)]
+#[derive(PartialEq)]
+pub enum Type {
 	EOL,
 	EOF,
 	NAME,
@@ -14,9 +17,9 @@ enum Type {
 }
 
 #[derive(Debug)]
-struct Token {
-	Type: Type,
-	Value: String,
+pub struct Token {
+	pub Type: Type,
+	pub Value: String,
 }
 
 impl Token {
@@ -24,6 +27,13 @@ impl Token {
 		Token {
 			Type: t,
 			Value: v,
+		}
+	}
+
+	pub fn clone(&self) -> Token {
+		Token {
+			Type: self.Type.clone(),
+			Value: self.Value.clone(),
 		}
 	}
 }
@@ -60,6 +70,7 @@ impl Lexer {
 		lexer.operators.insert("<".to_string(), true);
 		lexer.operators.insert("<=".to_string(), true);
 		lexer.operators.insert("&&".to_string(), true);
+		lexer.operators.insert("|".to_string(), true);
 		lexer.operators.insert("||".to_string(), true);
 		lexer.operators.insert("...".to_string(), true);
 		lexer.operators.insert("..".to_string(), true);
@@ -83,7 +94,7 @@ impl Lexer {
 		lexer
 	}
 	
-	pub fn run(&mut self, source: String) {
+	pub fn run(&mut self, source: String) -> Vec<Token> {
 		self.chars = source.chars().collect();
 
 		let mut tokens : Vec<Token> = Vec::new();
@@ -101,6 +112,8 @@ impl Lexer {
 		}
 
 		println!("{:?}", tokens);
+
+		tokens
 	}
 
 	fn char_at_pos(&self, index : usize) -> char {
@@ -154,7 +167,7 @@ impl Lexer {
 		}
 
 		// operators
-		if self.keywords.contains_key(&self.current.to_string()) {
+		if self.operators.contains_key(&self.current.to_string()) {
 			return self.operator()
 		}
 
