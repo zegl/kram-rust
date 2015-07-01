@@ -17,6 +17,7 @@ pub enum Type {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct Token {
 	pub Type: Type,
 	pub Value: String,

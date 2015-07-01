@@ -3,12 +3,15 @@ use lexer::Token;
 use lexer::Type;
 use vm::Instruction;
 use vm::Ins;
+use vm::Value;
 use std::collections::HashMap;
 
 pub struct Parser {
 	tokens: Vec<Token>,
+
 	index: usize,
 	lenght: usize,
+	has_advanced: bool,
 
 	comparisions: HashMap<String, bool>,
 	startOperators: HashMap<String, bool>,
@@ -30,6 +33,7 @@ impl Parser {
 
 			index: 0,
 			lenght: 0,
+			has_advanced: false,
 		};
 
 		// Hashmap of comparisions
@@ -75,14 +79,23 @@ impl Parser {
 		self.tokens = tokens;
 		self.lenght = self.tokens.len();
 
-		self.read_file();
+		let res = self.read_file();
+
+		println!("{:#?}", res);
 	}
 
 	fn read_file(&mut self) -> Vec<Instruction> {
-		self.read_until(vec![Token::new(Type::EOF, "".to_string())]);
+		self.read_until(&vec![Token::new(Type::EOF, "".to_string())])
 	}
 
-	fn read_until(&mut self, until: Vec<Token>) -> Vec<Instruction> {
+	fn read_until_eol(&mut self) -> Vec<Instruction> {
+		self.read_until(&vec![
+			Token::new(Type::EOL, "".to_string()),
+			Token::new(Type::EOF, "".to_string()),
+		])
+	}
+
+	fn read_until(&mut self, until: &Vec<Token>) -> Vec<Instruction> {
 		let mut res : Vec<Instruction> = Vec::new();
 
 		let mut first = true;
@@ -137,17 +150,24 @@ impl Parser {
 	}
 
 	fn advance(&mut self) {
-		self.index += 1
+		if self.has_advanced {
+			self.index += 1
+		} else {
+			self.has_advanced = true
+		}
 	}
 
 	fn symbol(&mut self, tok: Token) -> Instruction {
+
+		println!("Symbol: {:?}", tok);
+
 		match tok.Type {
 			// Type::EOL => self.eof_eol(tok),
 			// Type::EOF => self.eof_eol(tok),
 			Type::KEYWORD => self.keyword(tok),
-			// Type::NAME => self.name(tok),
+			Type::NAME => self.name(tok),
 			//Type::NUMBER => self.number(tok),
-			//Type::STRING => self.string(tok),
+			Type::STRING => self.string(tok),
 			//Type::BOOL => self.bool(tok),
 			//Type::OPERATOR => self.operator(tok),
 			//Type::IGNORE => self.ignore(tok),
@@ -195,6 +215,8 @@ impl Parser {
 
 		let s : &str = tok.Value.trim();
 
+		println!("Keyword: {:?}", tok);
+
 		match s {
 			"var" => self.keyword_var(tok.clone()),
 			/*"if" => self.keyword_var(tok),
@@ -208,46 +230,42 @@ impl Parser {
 	}
 
 	fn keyword_var(&mut self, tok: Token) -> Instruction {
-		let mut assign = Instruction::new(Ins::ASSIGN);
-
-		println!("Assign: {:?}", assign);
-		
+		let mut assign = Instruction::new(Ins::ASSIGN);		
 
 		self.advance();
 		let next = self.get_and_expect_token(Type::NAME);
-
-		println!("Assign: {:?}", assign);
-		println!("Next: {:?}", next);
 
 		assign.name = next.Value;
 
 		self.advance();
 		let next = self.get_and_expect_token(Type::OPERATOR);
 
-		println!("Assign: {:?}", assign);
-		println!("Next: {:?}", next);
-
 		if next.Value != "=" {
 			panic!("keyword_var() expected = after Type::NAME");
 		}
 
 		// Read until EOL
-		let value = self.read_until(vec![
-											Token::new(Type::EOL, "".to_string())
-										]
-					);
+		let value = self.read_until_eol();
+
+		assign.right = value;
+
+		assign
 	}
 
-	fn name(&self, tok: Token) {
-		
+	fn name(&self, tok: Token) -> Instruction {
+		let mut name = Instruction::new(Ins::NAME);
+		name.name = tok.Value;
+		name
 	}
 
 	fn number(&self, tok: Token) {
 		
 	}
 
-	fn string(&self, tok: Token) {
-		
+	fn string(&self, tok: Token) -> Instruction {
+		let mut literal = Instruction::new(Ins::LITERAL);
+		literal.value = Value::string(tok.Value);
+		literal
 	}
 
 	fn operator(&self, tok: Token) {

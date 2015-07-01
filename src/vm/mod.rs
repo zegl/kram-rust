@@ -1,14 +1,20 @@
 #[derive(Debug)]
 pub enum Ins {
+	// name, right
 	ASSIGN,
+
+	// value
 	LITERAL,
+
+	// name
+	NAME,
 }
 
 #[derive(Debug)]
 pub struct Instruction {
 	instruction: Ins,
 	pub name: String,
-	//pub value: Value,
+	pub value: Value,
 	pub right: Vec<Instruction>
 }
 
@@ -17,7 +23,7 @@ impl Instruction {
 		Instruction {
 			instruction: ins,
 			name: "".to_string(),
-			//value: Value::new(),
+			value: Value::null(),
 			right: Vec::new(),
 		}
 	}
@@ -25,23 +31,36 @@ impl Instruction {
 
 #[derive(Debug)]
 pub enum Type {
+	NULL,
 	STRING,
 	NUMBER,
 }
 
 #[derive(Debug)]
-struct Value {
-	t: Type,
-	string:  String,
-	nr: f64,
+pub struct Value {
+	Type: Type,
+	String:  String,
+	Number: f64,
 }
 
 impl Value {
-	fn new() -> Value {
+	fn new(t: Type) -> Value {
+		let mut res = Value::null();
+		res.Type = t;
+		res
+	}
+
+	fn null() -> Value {
 		Value {
-			t: Type::STRING,
-			string: "".to_string(),
-			nr: 0.0,
+			Type: Type::NULL,
+			String: "".to_string(),
+			Number: 0.0,
 		}
+	}
+
+	pub fn string(val: String) -> Value {
+		let mut s = Value::new(Type::STRING);
+		s.String = val;
+		s
 	}
 }
