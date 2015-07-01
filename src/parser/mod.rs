@@ -221,8 +221,8 @@ impl Parser {
 		}
 	}
 
-	fn infix_priority(tok: Token) -> u8 {
-		let s : &str = tok.Value.trim();
+	fn infix_priority(infix: String) -> u8 {
+		let s : &str = infix.trim();
 
 		match s {
 			"&&" => 30,
@@ -340,7 +340,37 @@ impl Parser {
 		if prev.instruction == Ins::LITERAL || prev.instruction == Ins::NAME {
 			math.left = vec![prev];
 			math.right = vec![self.symbol_next()];
-			return self.lookahead(math, ON::DEFAULT);
+
+			let math = self.lookahead(math, ON::DEFAULT);
+
+			// Verify that the ordering (infix_priority()) is correct
+			// Left is either a LITERAL or NAME, and right is a (new) MATH
+			if math.right[0].instruction == Ins::MATH {
+
+				// The ordering is wrong, and we need to correct this
+				// [a, *, [b, +, c]] -> [[a, *, b], +, c]
+				// This part is a little bit well, confusing and tight. But hey, it is a side-project after all.
+				if Parser::infix_priority(math.name.clone()) > Parser::infix_priority(math.right[0].clone().name) {
+
+					let right = math.right[0].clone();
+
+					let mut res = Instruction::new(Ins::MATH);
+
+					let mut left = Instruction::new(Ins::MATH);
+					left.name = math.name.clone();
+					left.left = math.left;
+					left.right = right.left;
+
+					res.left = vec![left];
+
+					res.name = right.name;
+					res.right = right.right;
+
+					return res;
+				}
+			}
+
+			return math;
 		}
 
 		prev

@@ -1,5 +1,6 @@
 #[derive(Debug)]
 #[derive(PartialEq)]
+#[derive(Clone)]
 pub enum Ins {
 	// name, right
 	ASSIGN,
@@ -16,6 +17,7 @@ pub enum Ins {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct Instruction {
 	pub instruction: Ins,
 	pub name: String,
@@ -37,6 +39,7 @@ impl Instruction {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum Type {
 	NULL,
 	STRING,
@@ -44,6 +47,7 @@ pub enum Type {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct Value {
 	Type: Type,
 	String:  String,
