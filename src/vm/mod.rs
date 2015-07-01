@@ -1,4 +1,5 @@
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub enum Ins {
 	// name, right
 	ASSIGN,
@@ -8,14 +9,19 @@ pub enum Ins {
 
 	// name
 	NAME,
+
+	// left, right, name (the operator)
+	MATH,
+
 }
 
 #[derive(Debug)]
 pub struct Instruction {
-	instruction: Ins,
+	pub instruction: Ins,
 	pub name: String,
 	pub value: Value,
-	pub right: Vec<Instruction>
+	pub left: Vec<Instruction>,
+	pub right: Vec<Instruction>,
 }
 
 impl Instruction {
@@ -24,6 +30,7 @@ impl Instruction {
 			instruction: ins,
 			name: "".to_string(),
 			value: Value::null(),
+			left: Vec::new(),
 			right: Vec::new(),
 		}
 	}
@@ -61,6 +68,12 @@ impl Value {
 	pub fn string(val: String) -> Value {
 		let mut s = Value::new(Type::STRING);
 		s.String = val;
+		s
+	}
+
+	pub fn number(num: f64) -> Value {
+		let mut s = Value::new(Type::STRING);
+		s.Number = num;
 		s
 	}
 }

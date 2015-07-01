@@ -131,6 +131,45 @@ impl Parser {
 		}
 	}
 
+	fn lookahead(&mut self, prev: Instruction, on: ON) -> Instruction {
+		self.advance();
+		let next = self.get_token();
+
+		/*
+			// PushClass
+			// IO.Println("123")
+			//   ^
+			if next.Type == "operator" && next.Value == "." {
+				return parser.symbol_PushClass(in)
+			}
+
+			// Call
+			// IO.Println("123")
+			//           ^
+			if next.Type == "operator" && next.Value == "(" {
+				return parser.symbol_Call(in, on)
+			}
+
+			// We encountered an operator, check the type of the previous expression
+			if next.Type == "operator" {
+				if _, ok := parser.startOperators[next.Value]; ok {
+					return parser.symbol_Math(in)
+				}
+
+				return in
+			}
+		*/
+
+		// We encountered an operator, check the type of the previous expression
+		if next.Type == Type::OPERATOR {
+			if self.startOperators.contains_key(&next.Value.to_string()) {
+				return self.math(prev);
+			}
+		}
+
+		prev
+	}	
+
 	fn get_token(&self) -> Token {
 		if self.index >= self.lenght {
 			Token::new(Type::EOF, "".to_string())
@@ -157,6 +196,13 @@ impl Parser {
 		}
 	}
 
+	fn symbol_next(&mut self) -> Instruction {
+		self.advance();
+		let tok = self.get_token();
+
+		self.symbol(tok)
+	}
+
 	fn symbol(&mut self, tok: Token) -> Instruction {
 
 		println!("Symbol: {:?}", tok);
@@ -166,7 +212,7 @@ impl Parser {
 			// Type::EOF => self.eof_eol(tok),
 			Type::KEYWORD => self.keyword(tok),
 			Type::NAME => self.name(tok),
-			//Type::NUMBER => self.number(tok),
+			Type::NUMBER => self.number(tok),
 			Type::STRING => self.string(tok),
 			//Type::BOOL => self.bool(tok),
 			//Type::OPERATOR => self.operator(tok),
@@ -205,10 +251,6 @@ impl Parser {
 
 			_ => 0,
 		}
-	}
-
-	fn eof_eol(&self, tok: Token) {
-
 	}
 
 	fn keyword(&mut self, tok: Token) -> Instruction {
@@ -258,14 +300,21 @@ impl Parser {
 		name
 	}
 
-	fn number(&self, tok: Token) {
+	// Convert tok.Value (a String) to a f64 and simply get a LITERAL with a number value
+	fn number(&mut self, tok: Token) -> Instruction {
+		let num : f64 = tok.Value.parse().unwrap();
+		let mut literal = Instruction::new(Ins::LITERAL);
+		literal.value = Value::number(num);
 		
+		self.lookahead(literal, ON::DEFAULT)
 	}
 
-	fn string(&self, tok: Token) -> Instruction {
+	// tok.Value is already a String, so this is easy
+	fn string(&mut self, tok: Token) -> Instruction {		
 		let mut literal = Instruction::new(Ins::LITERAL);
 		literal.value = Value::string(tok.Value);
-		literal
+		
+		self.lookahead(literal, ON::DEFAULT)
 	}
 
 	fn operator(&self, tok: Token) {
@@ -279,6 +328,89 @@ impl Parser {
 
 	fn bool(&self, tok: Token) {
 		
+	}
+
+	fn math(&mut self, prev: Instruction) -> Instruction {
+		let current = self.get_token();
+		let mut math = Instruction::new(Ins::MATH);
+
+		// The mathematical operator, eg + or -
+		math.name = current.Value;
+
+		if prev.instruction == Ins::LITERAL || prev.instruction == Ins::NAME {
+			math.left = vec![prev];
+			math.right = vec![self.symbol_next()];
+			return self.lookahead(math, ON::DEFAULT);
+		}
+
+		prev
+
+		/*
+			current := parser.nextToken(0)
+
+			parser.advance()
+
+			math := ins.Math{}
+			math.Method = current.Value // + - * /
+
+			// Differentiate between comparisions and arithmetic operators
+			if _, ok := parser.comparisions[math.Method]; ok {
+				math.IsComparision = true
+			} else {
+				math.IsComparision = false
+			}
+
+			if prev, ok := previous.(ins.Math); ok {
+				if parser.getOperatorImportance(prev.Method) < parser.getOperatorImportance(math.Method) {
+					math.Left = prev.Left
+					math.Method = prev.Method
+					math.Right = ins.Math{
+						Method: current.Value,
+						Left:   prev.Right,
+						Right:  parser.parseNext(true),
+					}
+				} else {
+					math.Left = previous
+					math.Right = parser.parseNext(true)
+				}
+
+				return parser.lookAhead(math)
+			}
+
+			_, isLeftOnly := parser.leftOnlyInfix[math.Method]
+			_, isRightOnly := parser.rightOnlyInfix[math.Method]
+
+			if _, ok := previous.(ins.Literal); ok {
+				math.Left = previous
+
+				if !isLeftOnly {
+					math.Right = parser.parseNext(true)
+				}
+
+				return parser.lookAhead(math)
+			}
+
+			if _, ok := previous.(ins.Variable); ok {
+				math.Left = previous
+
+				if !isLeftOnly {
+					math.Right = parser.parseNext(true)
+				}
+
+				return parser.lookAhead(math)
+			}
+
+			if isRightOnly {
+				math.Left = parser.parseNext(true)
+
+				return parser.lookAhead(math)
+			}
+
+			math.Left = previous
+			math.Right = parser.parseNext(true)
+
+			return parser.lookAhead(math)
+		*/
 	}
 }
 
