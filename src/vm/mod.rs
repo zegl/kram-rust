@@ -14,6 +14,11 @@ pub enum Ins {
 	// left, right, name (the operator)
 	MATH,
 
+	// left (true), right (false), center (the if-statement)
+	IF,
+
+	// Nothign, indicates an empty instruction in case of failure
+	IGNORE,
 }
 
 #[derive(Debug)]
@@ -24,6 +29,7 @@ pub struct Instruction {
 	pub value: Value,
 	pub left: Vec<Instruction>,
 	pub right: Vec<Instruction>,
+	pub center: Vec<Instruction>,
 }
 
 impl Instruction {
@@ -34,6 +40,7 @@ impl Instruction {
 			value: Value::null(),
 			left: Vec::new(),
 			right: Vec::new(),
+			center: Vec::new(),
 		}
 	}
 }
@@ -76,7 +83,7 @@ impl Value {
 	}
 
 	pub fn number(num: f64) -> Value {
-		let mut s = Value::new(Type::STRING);
+		let mut s = Value::new(Type::NUMBER);
 		s.Number = num;
 		s
 	}

@@ -106,8 +106,25 @@ impl Lexer {
 			self.index += 1;
 
 			match token.Type {
+				
+				// Quit this looping nonsense!
 				Type::EOF => break,
+
+				Type::EOL => {
+
+					// Do not add if two EOL in a row
+					let len = tokens.len();
+					if len > 0 && tokens[len - 1].Type == Type::EOL {
+						continue;
+					}
+
+					tokens.push(token);
+				}
+
+				// Do nothing
 				Type::IGNORE => continue,
+
+				// Push to the list of tokens
 				_ => tokens.push(token),
 			}
 		}

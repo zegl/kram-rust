@@ -81,6 +81,8 @@ impl Parser {
 
 		let res = self.read_file();
 
+		println!("\n\n\n\n\n\n\n");
+		println!("FINAL OUTPUT");
 		println!("{:#?}", res);
 	}
 
@@ -98,31 +100,42 @@ impl Parser {
 	fn read_until(&mut self, until: &Vec<Token>) -> Vec<Instruction> {
 		let mut res : Vec<Instruction> = Vec::new();
 
+		println!("READING UNTIL: {:#?}", until);
+
 		let mut first = true;
 
 		loop {
-			self.advance();
-
+			
 			let next = self.get_token();
 
-			//if !first {
-			//		for
-			//	}
-
-				/*if !first {
-					for _, t := range until {
-						if (t.Type == "EOL" || (t.Type == "operator" && t.Value == ";")) && parser.token.Type == t.Type {
-
-							parser.stack.Pop()
-							return
-						}
+			if !first {
+				for unt in until {
+					if (unt.Type == Type::EOL ||unt.Type == Type::EOF || (unt.Type == Type::OPERATOR && unt.Value == ";".to_string())) && next.Type == unt.Type {
+						println!("Stopped reading until (early)");
+						println!("{:#?}", res);
+						return res
 					}
-				}*/
+				}
+			}
+
+			// Advance and get again
+			self.advance();
+			let next = self.get_token();
+
+			println!("read_until() HAS {:?}", next);
 
 			for unt in until {
-				if unt.Type == next.Type {
-					return res
+				if unt.Type == next.Type && unt.Value == next.Value {
+					println!("Stopped reading until");
+					println!("{:#?}", res);
+					//self.reverse();
+					return res;
 				}
+			}
+
+			if next.Type == Type::EOF {
+				println!("FOUND EOF, QUIT!");
+				return res;
 			}
 
 			res.push(self.symbol(next));
@@ -134,6 +147,8 @@ impl Parser {
 	fn lookahead(&mut self, prev: Instruction, on: ON) -> Instruction {
 		self.advance();
 		let next = self.get_token();
+
+		println!("lookahead() HAS {:?}", next);
 
 		/*
 			// PushClass
@@ -167,6 +182,10 @@ impl Parser {
 			}
 		}
 
+		println!("lookahead() did nothign, reverting {:?}", next);
+
+		self.reverse();
+
 		prev
 	}	
 
@@ -174,6 +193,7 @@ impl Parser {
 		if self.index >= self.lenght {
 			Token::new(Type::EOF, "".to_string())
 		} else {
+			println!("get_token() {:?}", self.tokens[self.index].clone());
 			self.tokens[self.index].clone()
 		}
 	}
@@ -196,9 +216,17 @@ impl Parser {
 		}
 	}
 
+	fn reverse(&mut self) {
+		self.index -= 1
+	}
+
 	fn symbol_next(&mut self) -> Instruction {
 		self.advance();
 		let tok = self.get_token();
+
+		if tok.Type == Type::EOF {
+			println!("EOF IN SYMBOL_NEXT() (this should not happen)");
+		}
 
 		self.symbol(tok)
 	}
@@ -208,8 +236,8 @@ impl Parser {
 		println!("Symbol: {:?}", tok);
 
 		match tok.Type {
-			// Type::EOL => self.eof_eol(tok),
-			// Type::EOF => self.eof_eol(tok),
+			Type::EOL => self.ignore(tok),
+			Type::EOF => self.ignore(tok),
 			Type::KEYWORD => self.keyword(tok),
 			Type::NAME => self.name(tok),
 			Type::NUMBER => self.number(tok),
@@ -261,18 +289,18 @@ impl Parser {
 
 		match s {
 			"var" => self.keyword_var(tok.clone()),
-			/*"if" => self.keyword_var(tok),
-			"class" => self.keyword_var(tok),
-			"static" => self.keyword_var(tok),
-			"new" => self.keyword_var(tok),
-			"return" => self.keyword_var(tok),
-			"for" => self.keyword_var(tok),*/
+			"if" => self.keyword_if(tok.clone()),
+			// "class" => self.keyword_var(tok),
+			// "static" => self.keyword_var(tok),
+			// "new" => self.keyword_var(tok),
+			// "return" => self.keyword_var(tok),
+			// "for" => self.keyword_var(tok),
 			_ => panic!("keyword() - Unknown keyword, {:?}", tok),
 		}
 	}
 
 	fn keyword_var(&mut self, tok: Token) -> Instruction {
-		let mut assign = Instruction::new(Ins::ASSIGN);		
+		let mut assign = Instruction::new(Ins::ASSIGN);
 
 		self.advance();
 		let next = self.get_and_expect_token(Type::NAME);
@@ -294,6 +322,24 @@ impl Parser {
 		assign
 	}
 
+	fn keyword_if(&mut self, tok: Token) -> Instruction {
+		let mut if_case = Instruction::new(Ins::IF);
+
+		
+
+		// println!("IF START: {:#?}", if_case);
+
+		if_case.center = self.read_until(&vec![Token::new(Type::OPERATOR, "{".to_string())]);
+
+		// println!("IF CENTER: {:#?}", if_case);
+
+		if_case.left = self.read_until(&vec![Token::new(Type::OPERATOR, "}".to_string())]);
+
+		// println!("IF LEFT: {:#?}", if_case);
+
+		if_case
+	}
+
 	fn name(&self, tok: Token) -> Instruction {
 		let mut name = Instruction::new(Ins::NAME);
 		name.name = tok.Value;
@@ -305,7 +351,9 @@ impl Parser {
 		let num : f64 = tok.Value.parse().unwrap();
 		let mut literal = Instruction::new(Ins::LITERAL);
 		literal.value = Value::number(num);
-		
+
+		println!("Created literal number {:?}", tok);
+
 		self.lookahead(literal, ON::DEFAULT)
 	}
 
@@ -322,8 +370,8 @@ impl Parser {
 		// ||
 	}
 
-	fn ignore(&self, tok: Token) {
-		
+	fn ignore(&self, tok: Token) -> Instruction {
+		Instruction::new(Ins::IGNORE)
 	}
 
 	fn bool(&self, tok: Token) {
@@ -340,8 +388,6 @@ impl Parser {
 		if prev.instruction == Ins::LITERAL || prev.instruction == Ins::NAME {
 			math.left = vec![prev];
 			math.right = vec![self.symbol_next()];
-
-			let math = self.lookahead(math, ON::DEFAULT);
 
 			// Verify that the ordering (infix_priority()) is correct
 			// Left is either a LITERAL or NAME, and right is a (new) MATH
@@ -369,6 +415,8 @@ impl Parser {
 					return res;
 				}
 			}
+
+			println!("Next after math: {:?}", self.get_token());
 
 			return math;
 		}
