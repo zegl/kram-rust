@@ -325,17 +325,30 @@ impl Parser {
 	fn keyword_if(&mut self, tok: Token) -> Instruction {
 		let mut if_case = Instruction::new(Ins::IF);
 
-		
-
-		// println!("IF START: {:#?}", if_case);
-
 		if_case.center = self.read_until(&vec![Token::new(Type::OPERATOR, "{".to_string())]);
-
-		// println!("IF CENTER: {:#?}", if_case);
 
 		if_case.left = self.read_until(&vec![Token::new(Type::OPERATOR, "}".to_string())]);
 
-		// println!("IF LEFT: {:#?}", if_case);
+		// Look ahead and see if there is an else-part to this if-case
+		self.advance();
+
+		let next = self.get_token();
+
+			if next.Type == Type::KEYWORD && next.Value == "else".to_string() {
+
+			self.advance();
+			let curly = self.get_and_expect_token(Type::OPERATOR);
+
+			if curly.Value != "{".to_string() {
+				panic!("An else needs to be followed by an {");
+			}
+
+			if_case.right = self.read_until(&vec![Token::new(Type::OPERATOR, "}".to_string())]);
+
+		} else {
+			// Revert back to how it was
+			self.reverse();
+		}
 
 		if_case
 	}
