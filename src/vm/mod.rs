@@ -19,6 +19,12 @@ pub enum Ins {
 
 	// Nothign, indicates an empty instruction in case of failure
 	IGNORE,
+
+	// left (the class to push), right (what comes after)
+	PUSH_CLASS,
+
+	// left (the method name), right (the parameters)
+	CALL,
 }
 
 #[derive(Debug)]

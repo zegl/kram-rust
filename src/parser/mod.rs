@@ -150,30 +150,19 @@ impl Parser {
 
 		println!("lookahead() HAS {:?}", next);
 
-		/*
-			// PushClass
-			// IO.Println("123")
-			//   ^
-			if next.Type == "operator" && next.Value == "." {
-				return parser.symbol_PushClass(in)
-			}
+		// PushClass
+		// IO.Println("123")
+		//   ^
+		if next.Type == Type::OPERATOR && next.Value == ".".to_string() {
+			return self.push_class(prev);
+		}
 
-			// Call
-			// IO.Println("123")
-			//           ^
-			if next.Type == "operator" && next.Value == "(" {
-				return parser.symbol_Call(in, on)
-			}
-
-			// We encountered an operator, check the type of the previous expression
-			if next.Type == "operator" {
-				if _, ok := parser.startOperators[next.Value]; ok {
-					return parser.symbol_Math(in)
-				}
-
-				return in
-			}
-		*/
+		// Call
+		// IO.Println("123")
+		//           ^
+		if next.Type == Type::OPERATOR && next.Value == "(".to_string() {
+			return self.call(prev, on);
+		}
 
 		// We encountered an operator, check the type of the previous expression
 		if next.Type == Type::OPERATOR {
@@ -353,10 +342,11 @@ impl Parser {
 		if_case
 	}
 
-	fn name(&self, tok: Token) -> Instruction {
+	fn name(&mut self, tok: Token) -> Instruction {
 		let mut name = Instruction::new(Ins::NAME);
 		name.name = tok.Value;
-		name
+
+		self.lookahead(name, ON::DEFAULT)
 	}
 
 	// Convert tok.Value (a String) to a f64 and simply get a LITERAL with a number value
@@ -364,8 +354,6 @@ impl Parser {
 		let num : f64 = tok.Value.parse().unwrap();
 		let mut literal = Instruction::new(Ins::LITERAL);
 		literal.value = Value::number(num);
-
-		println!("Created literal number {:?}", tok);
 
 		self.lookahead(literal, ON::DEFAULT)
 	}
@@ -502,6 +490,24 @@ impl Parser {
 
 			return parser.lookAhead(math)
 		*/
+	}
+
+	fn push_class(&mut self, prev: Instruction) -> Instruction {
+		let mut push = Instruction::new(Ins::PUSH_CLASS);
+		push.left = vec![prev];
+		push.right = vec![self.symbol_next()];
+		push
+	}
+
+	fn call(&mut self, prev: Instruction, on: ON) -> Instruction {
+		let mut call = Instruction::new(Ins::CALL);
+		call.left = vec![prev];
+		call.right = self.read_until(&vec![
+			Token::new(Type::OPERATOR, ")".to_string()),
+			Token::new(Type::OPERATOR, ",".to_string())
+		]);
+
+		call
 	}
 }
 
