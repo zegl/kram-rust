@@ -75,7 +75,7 @@ impl Parser {
 		parser
 	}
 
-	pub fn run(&mut self, tokens: Vec<Token>) {
+	pub fn run(&mut self, tokens: Vec<Token>) -> Vec<Instruction> {
 		self.tokens = tokens;
 		self.lenght = self.tokens.len();
 
@@ -84,6 +84,8 @@ impl Parser {
 		println!("\n\n\n\n\n\n\n");
 		println!("FINAL OUTPUT");
 		println!("{:#?}", res);
+
+		res
 	}
 
 	fn read_file(&mut self) -> Vec<Instruction> {

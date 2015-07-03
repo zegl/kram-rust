@@ -1,3 +1,75 @@
+use std::collections::HashMap;
+
+pub struct VM {
+	env: HashMap<String, Value>,
+}
+
+impl VM {
+	pub fn new() -> VM {
+		VM {
+			env: HashMap::new(),
+		}
+	}
+
+	pub fn run(&mut self, instructions: Vec<Instruction>) {
+		self.block(instructions);
+	}
+
+	fn ins(&mut self, instruction: Instruction) -> Value {
+
+			println!("{:?}", instruction.instruction);
+
+			match instruction.instruction {
+				Ins::ASSIGN => self.assign(instruction),
+				Ins::LITERAL => self.literal(instruction),
+				Ins::PUSH_CLASS => self.push_class(instruction),
+				Ins::CALL => self.call(instruction),
+				_ => panic!("Unknown instruction: {:?}", instruction.instruction),
+			}
+	}
+
+	fn block(&mut self, instructions: Vec<Instruction>) -> Value {
+		for ins in instructions {
+			self.ins(ins);
+		}
+
+		Value::null()
+	}
+
+	fn assign(&mut self, instruction: Instruction) -> Value {
+		let val = self.ins(instruction.right[0].clone());
+
+		self.env.insert(instruction.name, val.clone());
+
+		val
+	}
+
+	fn literal(&mut self, instruction: Instruction) -> Value {
+		instruction.value
+	}
+
+	fn push_class(&mut self, instruction: Instruction) -> Value {
+
+		// TODO use instruction.left to actually push the class
+
+		self.ins(instruction.right[0].clone())
+	}
+
+	fn call(&mut self, instruction: Instruction) -> Value {
+
+		// All calls are basiacally the print method for now...
+
+		for echo in instruction.right {
+			match self.env.get(&echo.name) {
+				Some(entry) => println!("{:?} = {:?}", echo.name, entry),
+				None => println!("NOT SET: {:?}", echo.name),
+			}
+		}
+
+		Value::null()
+	}
+}
+
 #[derive(Debug)]
 #[derive(PartialEq)]
 #[derive(Clone)]
@@ -74,7 +146,7 @@ impl Value {
 		res
 	}
 
-	fn null() -> Value {
+	pub fn null() -> Value {
 		Value {
 			Type: Type::NULL,
 			String: "".to_string(),

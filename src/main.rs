@@ -24,7 +24,12 @@ fn main() {
 
         let mut parser = parser::Parser::new();
 
-        parser.run(tokens);
+        // The parser converts the tokens to an abstract syntax tree
+        let abs = parser.run(tokens);
+
+        // Boot up the VM and run it!
+        let mut vm = vm::VM::new();
+        vm.run(abs);
 
     } else {
         println!("You need to run kram with a file");

@@ -1,1 +1,3 @@
-IO.Println("Hello, world!")
+var a = 123
+
+IO.Println(a)
