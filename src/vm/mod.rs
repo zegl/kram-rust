@@ -1,4 +1,4 @@
-use libraries::Library;
+use libraries::Class;
 use libraries;
 
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ pub struct VM {
 	// libraries: HashMap<String, Box<Library>>,
 
 	// Pushed classes
-	classes: Vec<Box<Library>>,
+	classes: Vec<Box<Class>>,
 }
 
 impl VM {
@@ -19,8 +19,13 @@ impl VM {
 			classes: Vec::new(),
 		};
 
+		let io = libraries::io::IO::init();
+		io.call("println");
+
+		vm.env.set("IO".to_string(), Value::reference(Box::new(&io)));
+
 		// vm.libraries.insert("IO".to_string(), Box::new(libraries::IO::IO::new()));
-		vm.env.set("IO".to_string(), Value::reference(Box::new(libraries::IO::IO::new())));
+		//vm.env.set("IO".to_string(), Value::reference(Box::new(&libraries::io::IO::init())));
 
 		vm
 	}
@@ -227,7 +232,6 @@ pub struct Value {
 	Type: Type,
 	String:  String,
 	Number: f64,
-	Reference: Box<Library>,
 }
 
 impl Value {
@@ -257,9 +261,9 @@ impl Value {
 		s
 	}
 
-	pub fn reference(reference: Box<Library>) -> Value {
+	pub fn reference(reference: Box<Class>) -> Value {
 		let mut s = Value::new(Type::REFERENCE);
-		s.Reference = reference;
+		// s.Reference = reference;
 		s
 	}
 }

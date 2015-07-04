@@ -1,27 +1,25 @@
-use libraries::Library;
-use vm::Value;
+use libraries::Class;
 
-#[derive(Debug)]
 pub struct IO;
 
 impl IO {
-	pub fn new() -> IO {
-		IO
-	}
-
-	fn println(&self, val: Value) -> Value {
-		println!("{:?}", val);
-		Value::null()
-	}
+    fn println(&self) -> Box<Class> {
+        println!("{:?}", "Look, I'm printing!");
+        Box::new(IO)
+    }
 }
 
-impl Library for IO {
-	fn call(&self, method: String) -> Value {
-		let method : &str = method.trim();
+impl Class for IO {
+    fn init() -> Box<Class> {
+       Box::new(IO)
+    }
+    
+    fn call(&self, method: &str) -> Box<Class> {
+        let res = match method {
+            "println" => self.println(),
+            _ => panic!("Unknown method, {:?}", method),
+        };
 
-		match method {
-			"println" => self.println(Value::null()),
-			_ => panic!("No such method {:?}", method),
-		}
-	}
+        Box::new(res)
+    }
 }

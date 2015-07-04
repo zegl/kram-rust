@@ -1,13 +1,13 @@
-pub mod IO;
-use vm::Value;
+pub mod io;
 use std;
 
-pub trait Library {
-	fn call(&self, String) -> Value;
+pub trait Class {
+    fn init() -> Box<Class>;
+    fn call(&self, &str) -> Box<Class>;
 }
 
-impl std::fmt::Debug for Library {
+/*impl std::fmt::Debug for Class {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        println!("<Library>");
+        write!(f, "<Class>")
     }
-}
+}*/
