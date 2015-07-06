@@ -81,10 +81,6 @@ impl Parser {
 
 		let res = self.read_file();
 
-		println!("\n\n\n\n\n\n\n");
-		println!("FINAL OUTPUT");
-		println!("{:#?}", res);
-
 		res
 	}
 
@@ -108,14 +104,15 @@ impl Parser {
 
 		loop {
 			
-			let next = self.get_token();
+			{
+				let next = self.get_token();
 
-			if !first {
-				for unt in until {
-					if (unt.Type == Type::EOL ||unt.Type == Type::EOF || (unt.Type == Type::OPERATOR && unt.Value == ";".to_string())) && next.Type == unt.Type {
-						println!("Stopped reading until (early)");
-						println!("{:#?}", res);
-						return res
+				if !first {
+					for unt in until {
+						if (unt.Type == Type::EOL ||unt.Type == Type::EOF || (unt.Type == Type::OPERATOR && unt.Value == ";".to_string())) && next.Type == unt.Type {
+							println!("Stopped reading until (early)");
+							return res
+						}
 					}
 				}
 			}
@@ -129,8 +126,6 @@ impl Parser {
 			for unt in until {
 				if unt.Type == next.Type && unt.Value == next.Value {
 					println!("Stopped reading until");
-					println!("{:#?}", res);
-					//self.reverse();
 					return res;
 				}
 			}
@@ -140,7 +135,8 @@ impl Parser {
 				return res;
 			}
 
-			res.push(self.symbol(next));
+			// Next token is safe
+			res.push(self.symbol(&next));
 
 			first = false;
 		}
@@ -180,16 +176,16 @@ impl Parser {
 		prev
 	}	
 
-	fn get_token(&self) -> Token {
+	fn get_token(&mut self) -> Token {
 		if self.index >= self.lenght {
 			Token::new(Type::EOF, "".to_string())
 		} else {
-			println!("get_token() {:?}", self.tokens[self.index].clone());
+			println!("get_token() {:?}", self.tokens[self.index]);
 			self.tokens[self.index].clone()
 		}
 	}
 
-	fn get_and_expect_token(&self, exp: Type) -> Token {
+	fn get_and_expect_token(&mut self, exp: Type) -> Token {
 		let tok = self.get_token();
 
 		if tok.Type == exp {
@@ -219,10 +215,10 @@ impl Parser {
 			println!("EOF IN SYMBOL_NEXT() (this should not happen)");
 		}
 
-		self.symbol(tok)
+		self.symbol(&tok)
 	}
 
-	fn symbol(&mut self, tok: Token) -> Instruction {
+	fn symbol(&mut self, tok: &Token) -> Instruction {
 
 		println!("Symbol: {:?}", tok);
 
@@ -272,15 +268,15 @@ impl Parser {
 		}
 	}
 
-	fn keyword(&mut self, tok: Token) -> Instruction {
+	fn keyword(&mut self, tok: &Token) -> Instruction {
 
 		let s : &str = tok.Value.trim();
 
 		println!("Keyword: {:?}", tok);
 
 		match s {
-			"var" => self.keyword_var(tok.clone()),
-			"if" => self.keyword_if(tok.clone()),
+			"var" => self.keyword_var(tok),
+			"if" => self.keyword_if(tok),
 			// "class" => self.keyword_var(tok),
 			// "static" => self.keyword_var(tok),
 			// "new" => self.keyword_var(tok),
@@ -290,7 +286,7 @@ impl Parser {
 		}
 	}
 
-	fn keyword_var(&mut self, tok: Token) -> Instruction {
+	fn keyword_var(&mut self, tok: &Token) -> Instruction {
 		let mut assign = Instruction::new(Ins::ASSIGN);
 
 		self.advance();
@@ -313,7 +309,7 @@ impl Parser {
 		assign
 	}
 
-	fn keyword_if(&mut self, tok: Token) -> Instruction {
+	fn keyword_if(&mut self, tok: &Token) -> Instruction {
 		let mut if_case = Instruction::new(Ins::IF);
 
 		if_case.center = self.read_until(&vec![Token::new(Type::OPERATOR, "{".to_string())]);
@@ -344,16 +340,16 @@ impl Parser {
 		if_case
 	}
 
-	fn name(&mut self, tok: Token) -> Instruction {
+	fn name(&mut self, tok: &Token) -> Instruction {
 		let mut name = Instruction::new(Ins::NAME);
-		name.name = tok.Value;
+		name.name = tok.Value.clone();
 
 		self.lookahead(name, ON::DEFAULT)
 	}
 
 	// Convert tok.Value (a String) to a f64 and simply get a LITERAL with a number value
-	fn number(&mut self, tok: Token) -> Instruction {
-		let num : f64 = tok.Value.parse().unwrap();
+	fn number(&mut self, tok: &Token) -> Instruction {
+		let num : f64 = tok.Value.clone().parse().unwrap();
 		let mut literal = Instruction::new(Ins::LITERAL);
 		literal.value = Value::number(num);
 
@@ -361,23 +357,23 @@ impl Parser {
 	}
 
 	// tok.Value is already a String, so this is easy
-	fn string(&mut self, tok: Token) -> Instruction {		
+	fn string(&mut self, tok: &Token) -> Instruction {		
 		let mut literal = Instruction::new(Ins::LITERAL);
-		literal.value = Value::string(tok.Value);
+		literal.value = Value::string(tok.Value.clone());
 		
 		self.lookahead(literal, ON::DEFAULT)
 	}
 
-	fn operator(&self, tok: Token) {
+	fn operator(&mut self, tok: &Token) {
 		// *
 		// ||
 	}
 
-	fn ignore(&self, tok: Token) -> Instruction {
+	fn ignore(&mut self, tok: &Token) -> Instruction {
 		Instruction::new(Ins::IGNORE)
 	}
 
-	fn bool(&self, tok: Token) {
+	fn bool(&mut self, tok: &Token) {
 		
 	}
 
@@ -400,7 +396,6 @@ impl Parser {
 				// [a, *, [b, +, c]] -> [[a, *, b], +, c]
 				// This part is a little bit well, confusing and tight. But hey, it is a side-project after all.
 				if Parser::infix_priority(math.name.clone()) > Parser::infix_priority(math.right[0].clone().name) {
-
 					let right = math.right[0].clone();
 
 					let mut res = Instruction::new(Ins::MATH);

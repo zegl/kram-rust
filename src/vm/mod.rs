@@ -1,37 +1,33 @@
-use libraries::Class;
 use libraries;
-
+use std::iter;
 use std::collections::HashMap;
 
 pub struct VM {
 	env: Environment,
-	// libraries: HashMap<String, Box<Library>>,
 
 	// Pushed classes
-	classes: Vec<Box<Class>>,
+	classes: Vec<Value>,
 }
 
 impl VM {
 	pub fn new() -> VM {
 		let mut vm = VM {
 			env: Environment::new(),
-			// libraries: HashMap::new(),
 			classes: Vec::new(),
 		};
 
-		let io = libraries::io::IO::init();
-		io.call("println");
-
-		vm.env.set("IO".to_string(), Value::reference(Box::new(&io)));
-
-		// vm.libraries.insert("IO".to_string(), Box::new(libraries::IO::IO::new()));
-		//vm.env.set("IO".to_string(), Value::reference(Box::new(&libraries::io::IO::init())));
+		vm.add_objects();
 
 		vm
 	}
 
 	pub fn run(&mut self, instructions: Vec<Instruction>) {
 		self.block(instructions);
+	}
+
+	fn add_objects(&mut self) {
+		let io = libraries::io::IO::init();
+		self.env.set("IO".to_string(), Value::object(io));
 	}
 
 	fn ins(&mut self, instruction: Instruction) -> Value {
@@ -58,10 +54,10 @@ impl VM {
 
 	fn assign(&mut self, instruction: Instruction) -> Value {
 		let val = self.ins(instruction.right[0].clone());
+		self.env.set(instruction.name, val);
 
-		self.env.set(instruction.name, val.clone());
-
-		val
+		// Returns nothing
+		Value::null()
 	}
 
 	fn literal(&mut self, instruction: Instruction) -> Value {
@@ -84,25 +80,41 @@ impl VM {
 			let name = name.String;
 
 			if !self.env.exists(name.clone()) {
-				panic!("No such class!");
+				panic!("No such class, {:?}", name);
 			}
 
 			let class = self.env.get(name);
 
-			println!("{:#?}", instruction.left);
+			// Push to the stack
+			//self.classes.push(class);
 		}
 
-		self.ins(instruction.right[0].clone())
+		let res = self.ins(instruction.right[0].clone());
+
+		// Remove class from stack
+		//self.classes.pop();
+
+		// Return
+		res
 	}
 
 	fn call(&mut self, instruction: Instruction) -> Value {
 
+		// Get top class
+
+		//let len = self.classes.len();
+		//let class = self.classes[len - 1];
+
+		// class.
+
+
+
 		// All calls are basiacally the print method for now...
 
-		for echo in instruction.right {
+		/*for echo in instruction.right {
 			let val = self.env.get(echo.name);
 			println!("{:?}, {:?}, {:?}", val.Type, val.Number, val.String);
-		}
+		}*/
 
 		Value::null()
 	}
@@ -137,7 +149,6 @@ pub enum Ins {
 	CALL,
 }
 
-#[derive(Debug)]
 #[derive(Clone)]
 pub struct Instruction {
 	pub instruction: Ins,
@@ -182,9 +193,13 @@ impl Environment {
 	}
 
 	fn get(&self, key: String) -> &Value {
-		let len = self.data.len() - 1;
+		let len = self.data.len();
 
-		for i in len..0 {
+		for i in 0..len {
+
+			// There probably is some better way of looping in reverse. Somehow.
+			let i = len - i - 1;
+
 			match self.data[i].get(&key) {
 				Some(entry) => return entry,
 				None => continue,
@@ -195,9 +210,16 @@ impl Environment {
 	}
 
 	fn exists(&self, key: String) -> bool {
-		let len = self.data.len() - 1;
 
-		for i in len..0 {
+		println!("EXISTS: {:?}", key);
+
+		let len = self.data.len();
+
+		for i in 0..len {
+
+			// There probably is some better way of looping in reverse. Somehow.
+			let i = len - i - 1;
+
 			match self.data[i].get(&key) {
 				Some(entry) => return true,
 				None => continue,
@@ -217,8 +239,8 @@ impl Environment {
 }
 
 #[derive(Debug)]
-#[derive(Clone)]
 #[derive(PartialEq)]
+#[derive(Clone)]
 pub enum Type {
 	NULL,
 	STRING,
@@ -227,11 +249,11 @@ pub enum Type {
 }
 
 #[derive(Clone)]
-#[derive(Debug)]
 pub struct Value {
-	Type: Type,
-	String:  String,
-	Number: f64,
+	pub Type: Type,
+	pub String: String,
+	pub Number: f64,
+	pub Object: Object,
 }
 
 impl Value {
@@ -246,6 +268,7 @@ impl Value {
 			Type: Type::NULL,
 			String: "".to_string(),
 			Number: 0.0,
+			Object: Object::new("Unknown"),
 		}
 	}
 
@@ -261,9 +284,42 @@ impl Value {
 		s
 	}
 
-	pub fn reference(reference: Box<Class>) -> Value {
+	pub fn object(obj: Object) -> Value {
 		let mut s = Value::new(Type::REFERENCE);
-		// s.Reference = reference;
+		s.Object = obj;
 		s
 	}
+}
+
+pub struct Object  {
+    Name: String,
+    Variables: HashMap<String, Value>,
+    Methods: HashMap<String, Box<Fn(Value)>>,
+}
+
+impl Object {
+    pub fn new(name: &str) -> Object {
+        Object {
+            Name: name.to_string(),
+            Variables: HashMap::new(),
+            Methods: HashMap::new(),
+        }
+    }
+    
+    fn add_fn(&mut self, name: String, func: Box<Fn(Value)>) {
+        self.Methods.insert(name, func);
+    }
+    
+    fn exec(&mut self, name: String, input: Value) {
+        match self.Methods.get(&name) {
+			Some(method) => method(input),
+			None => return,
+		}
+    }
+}
+
+impl Clone for Object {
+    fn clone(&self) -> Object {
+        Object::new("Unknown")
+    }
 }
